@@ -1,0 +1,5 @@
+[
+	{
+		"button": "button1", "count": 1, "command":"pzd_open_callstack_file", "modifiers": ["shift"]
+	}
+]

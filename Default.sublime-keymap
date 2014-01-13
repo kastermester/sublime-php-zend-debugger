@@ -1,0 +1,30 @@
+[
+	{
+		"command": "pzd_debug",
+		"keys": ["command+f5"]
+	},
+	{
+		"command": "pzd_stop_debug",
+		"keys": ["command+shift+f5"]
+	},
+	{
+		"command": "pzd_toggle_breakpoint",
+		"keys": ["ctrl+b"]
+	},
+	{
+		"command": "pzd_continue",
+		"keys": ["f8"]
+	},
+	{
+		"command": "pzd_step_over",
+		"keys": ["f10"]
+	},
+	{
+		"command": "pzd_step_into",
+		"keys": ["f11"]
+	},
+	{
+		"command": "pzd_step_out",
+		"keys": ["shift+f11"]
+	}
+]

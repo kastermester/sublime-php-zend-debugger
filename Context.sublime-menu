@@ -1,0 +1,17 @@
+[{
+	"id": "pzd_menu",
+	"caption": "PHP Zend Debugger",
+	"children": [
+		{"caption": "-", "id": "breakpoints"},
+		{"command": "pzd_toggle_breakpoint", "caption": "Toggle breakpoint"},
+		{"command": "pzd_continue", "caption": "Continue"},
+		{"command": "pzd_step_over", "caption": "Step Over"},
+		{"command": "pzd_step_into", "caption": "Step Into"},
+		{"command": "pzd_step_out", "caption": "Step Out"},
+		{"caption": "-", "id": "debugging"},
+		{"command": "pzd_debug", "caption": "Begin debugging"},
+		{"command": "pzd_stop_debug", "caption": "Stop debugging"},
+		{"caption": "-", "id": "callstack"},
+		{"command": "pzd_open_callstack_file", "caption": "Open invocation point"}
+	]
+}]
