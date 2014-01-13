@@ -1,0 +1,5 @@
+{
+	// Absolute path on server the corresponds to the server-side project root
+	"project_root_server": "/var/www",
+	"project_root_local": "$projkect_path"
+}
