@@ -2,6 +2,7 @@ import sublime, sublime_plugin
 from debugger import DebuggerServer
 from pyregionset import PyRegionSet
 from event import Event
+import path_mapper
 
 active_debugger = None
 pzd_breakpoints = {}
@@ -27,7 +28,7 @@ class PzdDebugCommand(sublime_plugin.WindowCommand):
 
 	def process_file(self, socket, msg):
 		global pzd_breakpoints
-		filename = msg['filename'].replace('/vagrant', '/Development/orbit-moe')
+		filename = path_mapper.server_to_local(msg['filename'])
 		for bp in pzd_breakpoints.get(filename, []):
 			socket.set_breakpoint(msg['filename'], bp)
 		socket.continue_process()
@@ -49,7 +50,7 @@ class PzdDebugCommand(sublime_plugin.WindowCommand):
 
 	def session_paused(self, socket, msg):
 		global pzd_paused_file
-		filename = msg['filename'].replace('/vagrant', '/Development/orbit-moe')
+		filename = path_mapper.server_to_local(msg['filename'])
 		line = msg['lineno']
 		def open_file():
 			global pzd_paused_file
@@ -91,7 +92,7 @@ class PzdToggleBreakpointCommand(sublime_plugin.TextCommand):
 		global pzd_breakpoints, pzd_socket
 		regions_to_toggle = PyRegionSet([pzd_normalize_region(self.view, r) for r in self.view.sel()])
 		existing_regions = PyRegionSet(self.view.get_regions("pzd.breakpoint"))
-		filename = self.view.file_name().replace('/Development/orbit-moe', '/vagrant')
+		filename = path_mapper.local_to_server(self.view.file_name())
 		if pzd_socket is not None:
 			for r in regions_to_toggle:
 				if not existing_regions.contains(r):
@@ -129,7 +130,7 @@ class PzdRestoreBreakpointInformation(sublime_plugin.EventListener):
 		filename = view.file_name()
 		if filename is None:
 			return
-		server_filename = filename.replace('/Development/orbit-moe', '/vagrant')
+		server_filename = path_mapper.local_to_server(filename)
 		for r in breakpoints:
 			r = pzd_normalize_region(view, r)
 			line = pzd_region_to_line(view, r)
@@ -148,7 +149,7 @@ class PzdRestoreBreakpointInformation(sublime_plugin.EventListener):
 	def on_post_save(self, view):
 		global pzd_breakpoints, pzd_socket
 		filename = view.file_name()
-		server_filename = filename.replace('/Development/orbit-moe', '/vagrant')
+		server_filename = path_mapper.local_to_server(filename)
 
 		if not filename in pzd_breakpoints:
 			return

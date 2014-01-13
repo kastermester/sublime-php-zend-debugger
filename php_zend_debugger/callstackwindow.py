@@ -1,6 +1,7 @@
 from debug import pzd_socket_opened, pzd_on_continue
 import sublime, sublime_plugin
 from event import Event
+import path_mapper
 
 frame_depth = Event()
 
@@ -56,7 +57,7 @@ class PzdCallStackWindow(object):
 		while len(callstack) > 0:
 			frame = callstack.pop()
 			if len(frame['called_filename']) > 0:
-				result.append('%s:%d' % (frame['called_filename'].replace('/vagrant', '/Development/orbit-moe'), frame['called_lineno']))
+				result.append('%s:%d' % (path_mapper.server_to_local(frame['called_filename']), frame['called_lineno']))
 		return '\n'.join(result)
 
 	def set_text(self, text):
