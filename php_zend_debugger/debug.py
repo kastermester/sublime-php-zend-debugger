@@ -27,11 +27,13 @@ class PzdDebugCommand(sublime_plugin.WindowCommand):
 		debugger.script_end += self.script_end
 
 	def process_file(self, socket, msg):
-		global pzd_breakpoints
-		filename = path_mapper.server_to_local(msg['filename'])
-		for bp in pzd_breakpoints.get(filename, []):
-			socket.set_breakpoint(msg['filename'], bp)
-		socket.continue_process()
+		def process():
+			global pzd_breakpoints
+			filename = path_mapper.server_to_local(msg['filename'])
+			for bp in pzd_breakpoints.get(filename, []):
+				socket.set_breakpoint(msg['filename'], bp)
+			socket.continue_process()
+		sublime.set_timeout(process, 0)
 
 	def is_enabled(self):
 		global active_debugger
@@ -49,15 +51,17 @@ class PzdDebugCommand(sublime_plugin.WindowCommand):
 		pzd_socket_opened(socket)
 
 	def session_paused(self, socket, msg):
-		global pzd_paused_file
-		filename = path_mapper.server_to_local(msg['filename'])
-		line = msg['lineno']
-		def open_file():
+		def process():
 			global pzd_paused_file
-			view = sublime.active_window().open_file('%s:%d' % (filename, line), sublime.ENCODED_POSITION)
-			pzd_paused_file = view
-			self.highlight_line(view, line)
-		sublime.set_timeout(open_file, 0)
+			filename = path_mapper.server_to_local(msg['filename'])
+			line = msg['lineno']
+			def open_file():
+				global pzd_paused_file
+				view = sublime.active_window().open_file('%s:%d' % (filename, line), sublime.ENCODED_POSITION)
+				pzd_paused_file = view
+				self.highlight_line(view, line)
+			sublime.set_timeout(open_file, 0)
+		sublime.set_timeout(process, 0)
 
 	def highlight_line(self, view, line):
 		view.run_command('goto_line', {"line": line})
