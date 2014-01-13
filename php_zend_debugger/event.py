@@ -10,7 +10,9 @@ class Event:
         try:
             self.handlers.remove(handler)
         except:
-            raise ValueError("Handler is not handling this event, so cannot unhandle it.")
+            raise ValueError(
+                "Handler is not handling this event, so cannot unhandle it."
+            )
         return self
 
     def fire(self, *args, **kargs):
@@ -23,4 +25,4 @@ class Event:
     __iadd__ = handle
     __isub__ = unhandle
     __call__ = fire
-    __len__  = getHandlerCount
+    __len__ = getHandlerCount

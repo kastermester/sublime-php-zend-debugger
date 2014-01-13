@@ -1,8 +1,10 @@
 import bisect
 import sublime
 
+
 def subtract_region(r1, r2):
-    if not r1.contains(r2): r2 = r1.intersection(r2)
+    if not r1.contains(r2):
+        r2 = r1.intersection(r2)
 
     r1s, r1e = r1.begin(), r1.end()
     r2s, r2e = r2.begin(), r2.end()
@@ -16,18 +18,22 @@ def subtract_region(r1, r2):
     else:
         return [sublime.Region(r1s, r2s), sublime.Region(r2e, r1e)]
 
+
 class PyRegionSet(list):
+
     def __init__(self, l=[], merge=False):
         if merge:
             list.__init__(self)
-            for r in l: self.add(l)
+            for r in l:
+                self.add(l)
         else:
             list.__init__(self, l)
 
     def bisect(self, r):
-        ix = min(bisect.bisect(self, r), len(self) -1)
+        ix = min(bisect.bisect(self, r), len(self) - 1)
         reg = self[ix]
-        if r < reg and not (reg.contains(r) or reg.intersects(r)): ix -= 1
+        if r < reg and not (reg.contains(r) or reg.intersects(r)):
+            ix -= 1
         return max(0, ix)
 
     def clear(self):
@@ -40,7 +46,8 @@ class PyRegionSet(list):
         return self[self.bisect(r)]
 
     def add(self, r):
-        if not self: return self.append(r)
+        if not self:
+            return self.append(r)
 
         for ix in xrange(self.bisect(r), -1, -1):
             closest = self[ix]
@@ -51,8 +58,10 @@ class PyRegionSet(list):
 
             elif r.contains(closest) or r.intersects(closest):
                 r = r.cover(closest)
-                if ix: del self[ix]
-                else: self[ix] = r
+                if ix:
+                    del self[ix]
+                else:
+                    self[ix] = r
             else:
                 self.insert(ix+1, r)
                 return
@@ -68,6 +77,7 @@ class PyRegionSet(list):
                 for reg in subtract_region(closest, r):
                     bisect.insort(self, reg)
 
-                if ix == len(self): break
+                if ix == len(self):
+                    break
                 continue
             break
