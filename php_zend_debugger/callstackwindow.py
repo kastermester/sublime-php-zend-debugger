@@ -1,17 +1,17 @@
-from debug import pzd_socket_opened
-from debug import pzd_on_continue
+from .debugcontrols import pzd_socket_opened
+from .debugcontrols import pzd_on_continue
 import sublime
 import sublime_plugin
-from event import Event
-import path_mapper
+from .event import Event
+from .path_mapper import server_to_local
 
 frame_depth = Event()
-
 
 class PzdCallStackWindow(object):
 
     def __init__(self):
         global pzd_socket_opened, pzd_on_continue
+
         self.socket = None
         self.opened = False
         self.view = None
@@ -19,6 +19,10 @@ class PzdCallStackWindow(object):
 
         pzd_socket_opened += self.setup_socket
         pzd_on_continue += self.clear_callstack
+
+        for window in sublime.windows():
+            for view in window.views():
+                self.restore_view(view)
 
     def restore_view(self, view):
         if view.settings().get('pzd.callstack_window', False):
@@ -69,18 +73,15 @@ class PzdCallStackWindow(object):
             if len(frame['called_filename']) > 0:
                 result.append(
                     '%s:%d' %
-                    (path_mapper.server_to_local(frame['called_filename']),
+                    (server_to_local(frame['called_filename']),
                     frame['called_lineno'])
                 )
         return '\n'.join(result)
 
     def set_text(self, text):
         self.view.set_read_only(False)
-        edit = self.view.begin_edit()
-        self.view.replace(edit, sublime.Region(0, self.view.size()), text)
-        self.view.sel().clear()
+        self.view.run_command('pzd_set_text', {'text':text})
         self.view.run_command('goto_line', {'line': 0})
-        self.view.end_edit(edit)
         self.view.set_read_only(True)
 
     def clear_callstack(self):
@@ -114,7 +115,6 @@ class PzdCallStackWindow(object):
             sublime.active_window().run_command('close')
         self.view = None
         self.opened = False
-
 
 callstack_window = PzdCallStackWindow()
 
@@ -180,3 +180,11 @@ class PzdOpenCallstackFileCommand(sublime_plugin.TextCommand):
             'pzd.callstack_window',
             False
         ) and self.view.size() > 0
+
+
+class PzdSetTextCommand(sublime_plugin.TextCommand):
+
+    def run(self, edit, **args):
+        text = args['text']
+        self.view.replace(edit, sublime.Region(0, self.view.size()), text)
+

@@ -1,6 +1,4 @@
 import struct
-from exceptions import Exception
-
 
 class MessageHandler:
     messages = {
@@ -429,6 +427,7 @@ class MessageHandler:
                 result['lineno'], offset = MessageHandler.read_format_string(
                     value, '!i', offset
                 )
+
         return result
 
     @staticmethod
@@ -454,7 +453,7 @@ class MessageHandler:
             str_length = MessageHandler.read(value, '!i', offset)
             return MessageHandler.read(
                 value, str(str_length) + 's', offset+4
-            ), offset+4+str_length
+            ).decode(encoding='UTF-8'), offset+4+str_length
         else:
             return MessageHandler.read(
                 value, format, offset
@@ -463,9 +462,9 @@ class MessageHandler:
     @staticmethod
     def encode_format_string(value, format):
         if format == 's':
-            result = struct.pack('!i', len(value))
-            result += value
-            return result
+            bytes_string = value.encode(encoding='UTF-8')
+            length = struct.pack('!i', len(bytes_string))
+            return length + bytes_string
         else:
             return struct.pack(format, value)
 
@@ -487,7 +486,7 @@ class MessageHandler:
             return MessageHandler.encode_format_string(value, format)
         # at this point format will always be a list
         elif len(format) == 0:
-            return ''
+            return b''
         elif type(format[0]) == tuple:
             return MessageHandler.encode_format_tuple(value, format)
         else:
@@ -505,7 +504,7 @@ class MessageHandler:
 
     @staticmethod
     def encode_format_tuple(value, format):
-        result = ''
+        result = b''
         for key, value_format in format:
             result += MessageHandler.encode_format(value[key], value_format)
 
@@ -559,4 +558,4 @@ class MessageHandler:
                 ]
             )
             lines.append("%04x  %-*s  %s\n" % (c, length*3, hex, printable))
-        print ''.join(lines)
+        print(''.join(lines))

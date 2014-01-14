@@ -30,9 +30,7 @@ def local_to_server(filename, view=None,):
 
 def server_to_local(filename, view=None):
     project_path_local = get_setting('project_path_local', view=view)
-    print project_path_local
     project_path_server = get_setting('project_path_server', view=view)
-    print project_path_server
     if project_path_local is not None and project_path_server is not None:
         return filename.replace(project_path_server, project_path_local)
     return filename

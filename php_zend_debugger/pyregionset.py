@@ -49,7 +49,7 @@ class PyRegionSet(list):
         if not self:
             return self.append(r)
 
-        for ix in xrange(self.bisect(r), -1, -1):
+        for ix in range(self.bisect(r), -1, -1):
             closest = self[ix]
 
             if closest.contains(r) or closest.intersects(r):

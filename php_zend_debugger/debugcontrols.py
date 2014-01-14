@@ -1,9 +1,11 @@
 import sublime
 import sublime_plugin
-from debugger import DebuggerServer
-from pyregionset import PyRegionSet
-from event import Event
-import path_mapper
+from .debugger import DebuggerServer
+from .pyregionset import PyRegionSet
+from .event import Event
+from .path_mapper import local_to_server
+from .path_mapper import server_to_local
+import inspect
 
 active_debugger = None
 pzd_breakpoints = {}
@@ -23,16 +25,17 @@ class PzdDebugCommand(sublime_plugin.WindowCommand):
         debugger = DebuggerServer('0.0.0.0', 10137)
         active_debugger = debugger
         debugger.start()
-        print("Debugger started")
         debugger.session_started += self.session_started
         debugger.process_file += self.process_file
         debugger.session_ready += self.session_paused
         debugger.script_end += self.script_end
+        active_debugger = debugger
+        print("Debugger started")
 
     def process_file(self, socket, msg):
         def process():
             global pzd_breakpoints
-            filename = path_mapper.server_to_local(msg['filename'])
+            filename = server_to_local(msg['filename'])
             for bp in pzd_breakpoints.get(filename, []):
                 socket.set_breakpoint(msg['filename'], bp)
             socket.continue_process()
@@ -56,7 +59,7 @@ class PzdDebugCommand(sublime_plugin.WindowCommand):
     def session_paused(self, socket, msg):
         def process():
             global pzd_paused_file
-            filename = path_mapper.server_to_local(msg['filename'])
+            filename = server_to_local(msg['filename'])
             line = msg['lineno']
 
             def open_file():
@@ -82,9 +85,9 @@ class PzdDebugCommand(sublime_plugin.WindowCommand):
             view.add_regions(
                 "pzd.active_line",
                 [r],
-                "support.class.string.php",
+                "breakpoint",
                 '',
-                sublime.DRAW_OUTLINED
+                0
             )
 
             test = view.get_regions('pzd.active_line')
@@ -116,7 +119,7 @@ class PzdToggleBreakpointCommand(sublime_plugin.TextCommand):
             [pzd_normalize_region(self.view, r) for r in self.view.sel()]
         )
         existing_regions = PyRegionSet(self.view.get_regions("pzd.breakpoint"))
-        filename = path_mapper.local_to_server(self.view.file_name())
+        filename = local_to_server(self.view.file_name())
 
         if pzd_socket is not None:
             for r in regions_to_toggle:
@@ -169,7 +172,7 @@ class PzdRestoreBreakpointInformation(sublime_plugin.EventListener):
         filename = view.file_name()
         if filename is None:
             return
-        server_filename = path_mapper.local_to_server(filename)
+        server_filename = local_to_server(filename)
         for r in breakpoints:
             r = pzd_normalize_region(view, r)
             line = pzd_region_to_line(view, r)
@@ -188,7 +191,7 @@ class PzdRestoreBreakpointInformation(sublime_plugin.EventListener):
     def on_post_save(self, view):
         global pzd_breakpoints, pzd_socket
         filename = view.file_name()
-        server_filename = path_mapper.local_to_server(filename)
+        server_filename = local_to_server(filename)
 
         if not filename in pzd_breakpoints:
             return
@@ -211,6 +214,53 @@ class PzdRestoreBreakpointInformation(sublime_plugin.EventListener):
         if pzd_socket is not None:
             for line in existing_lines:
                 pzd_socket.set_breakpoint(server_filename, line)
+
+
+class PzdDoNotOpenWindowsInMyGroupsPlzListener(sublime_plugin.EventListener):
+    def __init__(self):
+        sublime_plugin.EventListener.__init__(self)
+        self.active_group_map = {}
+
+    def on_load(self, view):
+        window = view.window()
+        inspect.getmembers(view)
+        if window is None:
+            return
+
+        if not window.id() in self.active_group_map:
+            return
+
+        group, _ = window.get_view_index(view)
+        activate_group = self.active_group_map[window.id()]
+        if activate_group == group:
+            return
+
+        views_in_activate_group = window.views_in_group(activate_group)
+        can_contain = False
+        for view_in_activate_group in views_in_activate_group:
+            if not self.is_pzd_view(view_in_activate_group):
+                can_contain = True
+                break
+
+        window.set_view_index(view, group, len(views_in_activate_group))
+
+    def on_activated(self, view):
+        window = view.window()
+
+        if window is None:
+            return
+
+        def run():
+            if not self.is_pzd_view(view):
+                group, _ = window.get_view_index(view)
+                self.active_group_map[window.id()] = group
+
+        sublime.set_timeout(run, 0)
+
+    def is_pzd_view(self, view):
+        s = view.settings()
+        return s.get('pzd.locals_window', False) or \
+            s.get('pzd.callstack_window', False)
 
 
 class PzdStepOverCommand(sublime_plugin.TextCommand):
@@ -261,8 +311,8 @@ class PzdStepOutCommand(sublime_plugin.TextCommand):
         return pzd_socket is not None and pzd_paused_file is not None
 
     def description(self):
-        return "Steps out of the current " +
-        "function call in the debugging session"
+        return "Steps out of the current " + \
+            "function call in the debugging session"
 
 
 class PzdContinueCommand(sublime_plugin.TextCommand):
@@ -291,6 +341,13 @@ def pzd_normalize_region(view, region):
 def pzd_region_to_line(view, region):
     row, col = view.rowcol(region.begin())
     return row + 1
+
+
+def on_module_reload():
+    global active_debugger
+    if active_debugger is not None:
+        active_debugger.stop_debug()
+        active_debugger = None
 
 bpLoader = PzdRestoreBreakpointInformation()
 for window in sublime.windows():
