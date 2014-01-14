@@ -51,6 +51,7 @@ class PzdLocalsWindow(object):
         self.view.set_read_only(False)
         self.view.run_command('pzd_set_text', {'text': text})
         self.view.run_command('goto_line', {'line': 1})
+        self.view.run_command('fold_by_level', {'level':2})
         self.view.set_read_only(True)
 
     def clear_locals(self):
